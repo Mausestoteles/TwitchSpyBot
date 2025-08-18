@@ -91,6 +91,8 @@ $env:TWITCH_CLIENT_SECRET="dein_twitch_client_secret"
 & C:/path/to/python.exe Bot.py
 ```
 
+ich empfehle hier aber dies alles in der Bot.py Datei einzustellen.
+
 ---
 
 ## Start des Bots

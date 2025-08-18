@@ -29,7 +29,7 @@ except Exception:
 
 # Konfiguration (ersetzten oder via Umgebungsvariablen setzen)
 # Read Discord token from environment variable. Do NOT hardcode your token here.
-DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
+DISCORD_TOKEN = "MTQwNjg4Nzg5NDc5NDI0NDE4OA.Ge7XRk.ohOTi5Nxr3HRemgQ5dKxYHWkzYD7i4aDEQTw54"
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID") or "YOUR_TWITCH_CLIENT_ID"
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET") or "YOUR_TWITCH_CLIENT_SECRET"
@@ -354,4 +354,5 @@ if __name__ == "__main__":
         bot.run(DISCORD_TOKEN)
     finally:
         if "bot" in globals() and hasattr(bot, "http_session"):
+
             asyncio.get_event_loop().run_until_complete(bot.http_session.close())

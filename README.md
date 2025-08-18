@@ -53,12 +53,6 @@ venv\Scripts\activate       # Windows PowerShell
 pip install -r requirements.txt
 ```
 
-Falls keine `requirements.txt` existiert, manuell:
-
-```bash
-pip install discord.py aiohttp
-```
-
 ### 4. Umgebungsvariablen setzen
 
 #### Option A: `.env`-Datei (empfohlen)

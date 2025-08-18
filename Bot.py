@@ -34,10 +34,10 @@ def _mask_secret(s: str) -> str:
         return "*" * len(s)
     return s[:4] + "*" * (len(s) - 8) + s[-4:]
 
-DISCORD_TOKEN = "MTQwNjg4Nzg5NDc5NDI0NDE4OA.Gix9ij.xHF3Q_BOoUadqNbcphiazC_DMrtpRogJbueVM8"
+DISCORD_TOKEN = "Bot token hier"
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
-TWITCH_CLIENT_ID = "irpz3zkqg2vi9bex3zy8u12q7mkyo"
-TWITCH_CLIENT_SECRET = "107ykt2t7n5gp0xgpv7jhdg41l1tpob"
+TWITCH_CLIENT_ID = "Twitch client id hier"
+TWITCH_CLIENT_SECRET = "twitch client secret hier"
 TWITCH_USER_LOGIN = os.environ.get("TWITCH_USER_LOGIN") or "streamer_login"  
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS") or "60")  
 
@@ -427,3 +427,11 @@ if __name__ == "__main__":
     finally:
         if "bot" in globals() and hasattr(bot, "http_session"):
             asyncio.get_event_loop().run_until_complete(bot.http_session.close())
+
+# /* ======================================== */
+# // Signature
+# //
+#    01001001 01110000 01000001 01110101 01010110 01000011 01000101
+#    01100111 01011010 01000101 01010011 00111000 01001010 00110010
+#    01001001 01101110 01010000 01100111 00111101 00111101
+# /* ======================================== */

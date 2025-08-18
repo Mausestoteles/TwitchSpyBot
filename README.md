@@ -1,4 +1,4 @@
-````markdown
+
 # StreamSpy Discord-Bot
 
 Ein Discord-Bot, der Twitch-Streams überwacht und automatisch im gewünschten Discord-Channel benachrichtigt, sobald ein Streamer live geht.  

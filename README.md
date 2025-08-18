@@ -195,7 +195,3 @@ https://twitch.tv/ninja
 
 Siehe [LICENSE](LICENSE)
 
-```
-
-Soll ich dir zusätzlich noch eine **`requirements.txt`** schreiben, die du direkt in dein Repo legen kannst?
-```

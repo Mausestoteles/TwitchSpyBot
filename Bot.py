@@ -45,10 +45,10 @@ def _mask_secret(s: str) -> str:
 
 # Konfiguration (ersetzten oder via Umgebungsvariablen setzen)
 # Read Discord token from environment variable. Do NOT hardcode your token here.
-DISCORD_TOKEN = os.environ.get("MTQwNjg4Nzg5NDc5NDI0NDE4OA.Gix9ij.xHF3Q_BOoUadqNbcphiazC_DMrtpRogJbueVM8") or None
+DISCORD_TOKEN = "MTQwNjg4Nzg5NDc5NDI0NDE4OA.Gix9ij.xHF3Q_BOoUadqNbcphiazC_DMrtpRogJbueVM8"
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
-TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID") or "YOUR_TWITCH_CLIENT_ID"
-TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET") or "YOUR_TWITCH_CLIENT_SECRET"
+TWITCH_CLIENT_ID = "irpz3zkqg2vi9bex3zy8u12q7mkyo"
+TWITCH_CLIENT_SECRET = "107ykt2t7n5gp0xgpv7jhdg41l1tpob"
 TWITCH_USER_LOGIN = os.environ.get("TWITCH_USER_LOGIN") or "streamer_login"  # z.B. "ninja"
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS") or "60")  # Abfrage-Intervall in Sekunden
 

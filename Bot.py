@@ -6,6 +6,8 @@ import logging
 import aiohttp
 import time
 import sys
+import re
+from datetime import datetime
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -57,6 +59,9 @@ DEFAULT_TEMPLATE = ":red_circle: {streamer} ist jetzt live auf Twitch!\n{title}\
 DATA_DIR = Path.cwd() / "data"
 DATA_FILE = DATA_DIR / "streamspy.json"
 TRACKER_LIMIT = 50
+# Directory for per-guild message logs
+MESSAGE_LOG_DIR = Path.cwd() / "Message Logs"
+MEMBER_LIST_DIR = Path.cwd() / "Member Lists"
 
 
 def _ensure_data_dir():
@@ -64,6 +69,63 @@ def _ensure_data_dir():
         DATA_DIR.mkdir(parents=True, exist_ok=True)
     except Exception:
         logging.exception("Could not create data directory")
+
+
+def _sanitize_filename(name: str) -> str:
+    # keep only safe characters
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
+    return safe[:100]
+
+
+def _sync_append(path: Path, text: str):
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        logging.exception("Failed to write message log to %s", path)
+
+
+def _sync_write(path: Path, text: str):
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        logging.exception("Failed to write file to %s", path)
+
+
+async def _append_message_log(guild: discord.Guild, line: str):
+    # Write to file in threadpool to avoid blocking the event loop
+    gid = guild.id if guild else 0
+    gname = guild.name if guild else "DM"
+    fname = f"{gid}_{_sanitize_filename(gname)}.log"
+    path = MESSAGE_LOG_DIR / fname
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _sync_append, path, line)
+
+
+async def _write_member_list(guild: discord.Guild):
+    # Write full member list to a file (overwrites)
+    if guild is None:
+        return
+    gid = guild.id
+    gname = guild.name
+    fname = f"{gid}_{_sanitize_filename(gname)}.members.log"
+    path = MEMBER_LIST_DIR / fname
+    lines = []
+    lines.append(f"Member list for {gname} ({gid})\n")
+    lines.append("Generated: " + datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC") + "\n\n")
+    try:
+        for member in guild.members:
+            nick = member.nick or ""
+            roles = ",".join([r.name for r in member.roles[1:]]) if member.roles else ""
+            lines.append(f"{member.id}\t{member.name}#{getattr(member, 'discriminator', '')}\t{nick}\troles:[{roles}]\n")
+    except Exception:
+        logging.exception("Failed to iterate members for guild %s", gid)
+    content = "".join(lines)
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _sync_write, path, content)
 
 
 def load_state():
@@ -188,6 +250,35 @@ twitch = TwitchAPI(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
 async def on_close():
     if hasattr(bot, "http_session"):
         await bot.http_session.close()
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    try:
+        # Ignore messages from bots to avoid loops
+        if message.author.bot:
+            return
+        guild = message.guild
+        ts = datetime.utcfromtimestamp(message.created_at.timestamp()).strftime("%Y-%m-%d %H:%M:%S UTC") if message.created_at else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        author = f"{message.author.name}#{message.author.discriminator}" if hasattr(message.author, 'discriminator') else str(message.author)
+        channel = message.channel.name if hasattr(message.channel, 'name') else str(message.channel)
+        content = message.content.replace('\n', '\\n')
+        line = f"[{ts}] [{channel}] {author}: {content}\n"
+        # Append to file asynchronously
+        await _append_message_log(guild, line)
+    except Exception:
+        logging.exception("Failed to log message")
+    # Process commands if any
+    await bot.process_commands(message)
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild):
+    try:
+        logging.info("Joined guild %s (%s), writing member list", guild.name, guild.id)
+        await _write_member_list(guild)
+    except Exception:
+        logging.exception("Error handling on_guild_join for %s", getattr(guild, 'id', 'unknown'))
 
 @tasks.loop(seconds=POLL_SECONDS)
 async def check_stream():

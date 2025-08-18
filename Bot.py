@@ -29,9 +29,23 @@ try:
 except Exception:
     logging.exception("Could not set up file logging")
 
+# Optional debug mode via environment variable
+if os.environ.get("STREAMSPY_DEBUG", "0").lower() in ("1", "true", "yes"):
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.debug("STREAMSPY_DEBUG is set: enabling debug logging")
+
+
+def _mask_secret(s: str) -> str:
+    if not s:
+        return ""
+    s = str(s)
+    if len(s) <= 8:
+        return "*" * len(s)
+    return s[:4] + "*" * (len(s) - 8) + s[-4:]
+
 # Konfiguration (ersetzten oder via Umgebungsvariablen setzen)
 # Read Discord token from environment variable. Do NOT hardcode your token here.
-DISCORD_TOKEN = "MTQwNjg4Nzg5NDc5NDI0NDE4OA.Ge7XRk.ohOTi5Nxr3HRemgQ5dKxYHWkzYD7i4aDEQTw54"
+DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN") or None
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID") or "YOUR_TWITCH_CLIENT_ID"
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET") or "YOUR_TWITCH_CLIENT_SECRET"
@@ -86,6 +100,7 @@ def _sync_append(path: Path, text: str):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as f:
             f.write(text)
+        logging.debug("Appended %d bytes to %s", len(text), path)
     except Exception:
         logging.exception("Failed to write message log to %s", path)
 
@@ -95,6 +110,7 @@ def _sync_write(path: Path, text: str):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as f:
             f.write(text)
+        logging.debug("Wrote %d bytes to %s", len(text), path)
     except Exception:
         logging.exception("Failed to write file to %s", path)
 
@@ -107,6 +123,7 @@ async def _append_message_log(guild: discord.Guild, line: str):
     path = MESSAGE_LOG_DIR / fname
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _sync_append, path, line)
+    logging.debug("Queued append to message log %s for guild %s", path, gid)
 
 
 async def _write_member_list(guild: discord.Guild):
@@ -130,6 +147,7 @@ async def _write_member_list(guild: discord.Guild):
     content = "".join(lines)
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, _sync_write, path, content)
+    logging.debug("Queued member list write to %s for guild %s", path, gid)
 
 
 def load_state():

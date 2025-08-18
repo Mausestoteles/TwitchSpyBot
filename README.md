@@ -197,7 +197,7 @@ https://twitch.tv/ninja
 
 ## Lizenz
 
-Dieses Projekt steht unter keiner öffentlichen Lizenz. Verwendung nur nach Rücksprache mit dem Autor.
+Siehe [LICENSE](LICENSE)
 
 ```
 

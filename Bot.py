@@ -12,15 +12,7 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 
-#!/usr/bin/env python3
-# Bot.py
-# Discord-Bot: Benachrichtigt in einem bestimmten Channel, wenn ein Twitch-Streamer live geht.
-# Konfiguration über Umgebungsvariablen oder direkt hier eintragen.
-
-
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-# Add rotating file handler for persistent logs
 try:
     from logging.handlers import RotatingFileHandler
     fh = RotatingFileHandler('streamspy.log', maxBytes=5_000_000, backupCount=3, encoding='utf-8')
@@ -29,7 +21,6 @@ try:
 except Exception:
     logging.exception("Could not set up file logging")
 
-# Optional debug mode via environment variable
 if os.environ.get("STREAMSPY_DEBUG", "0").lower() in ("1", "true", "yes"):
     logging.getLogger().setLevel(logging.DEBUG)
     logging.debug("STREAMSPY_DEBUG is set: enabling debug logging")
@@ -43,41 +34,28 @@ def _mask_secret(s: str) -> str:
         return "*" * len(s)
     return s[:4] + "*" * (len(s) - 8) + s[-4:]
 
-# Konfiguration (ersetzten oder via Umgebungsvariablen setzen)
-# Read Discord token from environment variable. Do NOT hardcode your token here.
 DISCORD_TOKEN = "MTQwNjg4Nzg5NDc5NDI0NDE4OA.Gix9ij.xHF3Q_BOoUadqNbcphiazC_DMrtpRogJbueVM8"
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
 TWITCH_CLIENT_ID = "irpz3zkqg2vi9bex3zy8u12q7mkyo"
 TWITCH_CLIENT_SECRET = "107ykt2t7n5gp0xgpv7jhdg41l1tpob"
-TWITCH_USER_LOGIN = os.environ.get("TWITCH_USER_LOGIN") or "streamer_login"  # z.B. "ninja"
-POLL_SECONDS = int(os.environ.get("POLL_SECONDS") or "60")  # Abfrage-Intervall in Sekunden
+TWITCH_USER_LOGIN = os.environ.get("TWITCH_USER_LOGIN") or "streamer_login"  
+POLL_SECONDS = int(os.environ.get("POLL_SECONDS") or "60")  
 
 intents = discord.Intents.default()
-# Required to read message content and to access member lists
-# These are privileged intents and must also be enabled in the Discord Developer Portal
 intents.message_content = True
 intents.members = True
-# discord.py requires a command_prefix for commands.Bot; use a harmless default
 bot = commands.Bot(command_prefix="!", intents=intents)
 streamspy = app_commands.Group(name="streamspy", description="StreamSpy Befehle")
 
-# Per-guild selected channel for notifications: {guild_id: channel_id}
 SELECTED_CHANNELS = {}
-
-# Per-guild trackers: {guild_id: {streamer_login_lower: message_template}}
 TRACKERS = {}
-
-# Per-guild live state: {guild_id: {streamer_login_lower: bool}}
 LIVE_STATE = {}
 
-# Default message template (can use {streamer}, {title}, {viewers}, {url})
 DEFAULT_TEMPLATE = ":red_circle: {streamer} ist jetzt live auf Twitch!\n{title}\nZuschauer: {viewers}\n{url}"
 
-# Persistence file
 DATA_DIR = Path.cwd() / "data"
 DATA_FILE = DATA_DIR / "streamspy.json"
 TRACKER_LIMIT = 50
-# Directory for per-guild message logs
 MESSAGE_LOG_DIR = Path.cwd() / "Message Logs"
 MEMBER_LIST_DIR = Path.cwd() / "Member Lists"
 
@@ -90,7 +68,6 @@ def _ensure_data_dir():
 
 
 def _sanitize_filename(name: str) -> str:
-    # keep only safe characters
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
     return safe[:100]
 
@@ -116,7 +93,6 @@ def _sync_write(path: Path, text: str):
 
 
 async def _append_message_log(guild: discord.Guild, line: str):
-    # Write to file in threadpool to avoid blocking the event loop
     gid = guild.id if guild else 0
     gname = guild.name if guild else "DM"
     fname = f"{gid}_{_sanitize_filename(gname)}.log"
@@ -127,7 +103,6 @@ async def _append_message_log(guild: discord.Guild, line: str):
 
 
 async def _write_member_list(guild: discord.Guild):
-    # Write full member list to a file (overwrites)
     if guild is None:
         return
     gid = guild.id
@@ -190,11 +165,11 @@ def _format_console_line(guild_id: int, guild_name: str, channel_id: int, stream
 def console_live_log(guild: discord.Guild, channel_id: int, streamer: str, title: str, viewers, url: str):
     try:
         line = _format_console_line(guild.id if guild else 0, guild.name if guild else "DM", channel_id, streamer, title, viewers, url)
-        # Print to stdout for an easy live log view and also to logging
         print(line)
         logging.info(line)
     except Exception:
         logging.exception("Fehler beim Schreiben des Live-Logs")
+
 
 class TwitchAPI:
     def __init__(self, client_id: str, client_secret: str):
@@ -212,7 +187,6 @@ class TwitchAPI:
             "client_secret": self.client_secret,
             "grant_type": "client_credentials",
         }
-        # Retry on transient network errors
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
             try:
@@ -233,7 +207,6 @@ class TwitchAPI:
                 await asyncio.sleep(2 ** attempt)
 
     async def get_stream(self, session: aiohttp.ClientSession, user_login: str):
-        # Ensure token (may raise)
         await self.ensure_token(session)
         headers = {
             "Client-ID": self.client_id,
@@ -246,7 +219,6 @@ class TwitchAPI:
             try:
                 async with session.get(url, headers=headers, params=params) as resp:
                     if resp.status == 401 and attempt == 1:
-                        # Token expired/invalid -> refresh and retry
                         await self.ensure_token(session)
                         headers["Authorization"] = f"Bearer {self.token}"
                         continue
@@ -266,7 +238,6 @@ class TwitchAPI:
 
 twitch = TwitchAPI(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
 
-# (on_ready is defined later after command registration)
 
 @bot.event
 async def on_close():
@@ -277,7 +248,6 @@ async def on_close():
 @bot.event
 async def on_message(message: discord.Message):
     try:
-        # Ignore messages from bots to avoid loops
         if message.author.bot:
             return
         guild = message.guild
@@ -286,11 +256,9 @@ async def on_message(message: discord.Message):
         channel = message.channel.name if hasattr(message.channel, 'name') else str(message.channel)
         content = message.content.replace('\n', '\\n')
         line = f"[{ts}] [{channel}] {author}: {content}\n"
-        # Append to file asynchronously
         await _append_message_log(guild, line)
     except Exception:
         logging.exception("Failed to log message")
-    # Process commands if any
     await bot.process_commands(message)
 
 
@@ -306,7 +274,6 @@ async def on_guild_join(guild: discord.Guild):
 async def check_stream():
     try:
         session: aiohttp.ClientSession = bot.http_session
-        # Prüfe alle Gilden und deren konfigurierten Streamer
         for guild in bot.guilds:
             gid = guild.id
             trackers = TRACKERS.get(gid)
@@ -320,7 +287,6 @@ async def check_stream():
             if channel is None:
                 logging.warning("Ausgewählter Channel %s in Guild %s nicht gefunden", sel_chan_id, gid)
                 continue
-            # Go through each tracked streamer for this guild
             guild_state = LIVE_STATE.setdefault(gid, {})
             for streamer, template in list(trackers.items()):
                 try:
@@ -332,14 +298,12 @@ async def check_stream():
                         title = stream.get("title", "Kein Titel")
                         viewers = stream.get("viewer_count", "unbekannt")
                         url = f"https://twitch.tv/{streamer}"
-                        # Format the message template
                         try:
                             msg = (template or DEFAULT_TEMPLATE).format(streamer=streamer, title=title, viewers=viewers, url=url)
                         except Exception:
                             msg = DEFAULT_TEMPLATE.format(streamer=streamer, title=title, viewers=viewers, url=url)
                         await channel.send(msg)
                         logging.info("Notified guild %s about %s live", gid, streamer)
-                        # Console live log
                         try:
                             guild_obj = discord.utils.get(bot.guilds, id=gid)
                             console_live_log(guild_obj, sel_chan_id, streamer, title, viewers, url)
@@ -350,6 +314,7 @@ async def check_stream():
                     logging.exception("Fehler beim Prüfen von %s in Guild %s: %s", streamer, gid, e)
     except Exception as e:
         logging.exception("Fehler beim Prüfen des Streams: %s", e)
+
 
 @check_stream.before_loop
 async def before_check():
@@ -384,7 +349,6 @@ async def add_streamer(interaction: discord.Interaction, streamer: str, message:
     gid = interaction.guild.id if interaction.guild else None
     if gid is None:
         return await interaction.response.send_message("Nur in einer Gilde nutzbar.", ephemeral=True)
-    # Ensure a channel is selected
     if gid not in SELECTED_CHANNELS:
         return await interaction.response.send_message("Bitte zuerst mit /streamspy select einen Channel wählen.", ephemeral=True)
     s = streamer.lower()
@@ -392,7 +356,6 @@ async def add_streamer(interaction: discord.Interaction, streamer: str, message:
     if len(trackers) >= TRACKER_LIMIT:
         return await interaction.response.send_message(f"Maximale Anzahl von Trackern ({TRACKER_LIMIT}) erreicht.", ephemeral=True)
     trackers[s] = message or DEFAULT_TEMPLATE
-    # Ensure live state entry exists
     LIVE_STATE.setdefault(gid, {})[s] = False
     save_state()
     await interaction.response.send_message(f"Streamer **{streamer}** hinzugefügt. Benachrichtigungen gehen an <#{SELECTED_CHANNELS[gid]}>.", ephemeral=True)
@@ -442,14 +405,10 @@ async def set_template(interaction: discord.Interaction, streamer: str, template
     await interaction.response.send_message(f"Vorlage für **{streamer}** gesetzt.", ephemeral=True)
 
 
-# Slash-Commands registrieren und synchronisieren
 @bot.event
 async def on_ready():
     logging.info("Bot ready: %s", bot.user)
-    # Load persisted state (selected channels and trackers) on startup
     load_state()
-    # Use trust_env=True so aiohttp respects system proxy settings (HTTP_PROXY/HTTPS_PROXY)
-    # and set a reasonable timeout to fail fast on network issues.
     bot.http_session = aiohttp.ClientSession(trust_env=True, timeout=aiohttp.ClientTimeout(total=30))
     bot._stream_was_live = False
     bot.tree.add_command(streamspy)
@@ -467,5 +426,4 @@ if __name__ == "__main__":
         bot.run(DISCORD_TOKEN)
     finally:
         if "bot" in globals() and hasattr(bot, "http_session"):
-
             asyncio.get_event_loop().run_until_complete(bot.http_session.close())

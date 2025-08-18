@@ -39,6 +39,10 @@ TWITCH_USER_LOGIN = os.environ.get("TWITCH_USER_LOGIN") or "streamer_login"  # z
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS") or "60")  # Abfrage-Intervall in Sekunden
 
 intents = discord.Intents.default()
+# Required to read message content and to access member lists
+# These are privileged intents and must also be enabled in the Discord Developer Portal
+intents.message_content = True
+intents.members = True
 # discord.py requires a command_prefix for commands.Bot; use a harmless default
 bot = commands.Bot(command_prefix="!", intents=intents)
 streamspy = app_commands.Group(name="streamspy", description="StreamSpy Befehle")

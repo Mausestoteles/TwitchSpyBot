@@ -45,7 +45,7 @@ def _mask_secret(s: str) -> str:
 
 # Konfiguration (ersetzten oder via Umgebungsvariablen setzen)
 # Read Discord token from environment variable. Do NOT hardcode your token here.
-DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN") or None
+DISCORD_TOKEN = os.environ.get("MTQwNjg4Nzg5NDc5NDI0NDE4OA.Gix9ij.xHF3Q_BOoUadqNbcphiazC_DMrtpRogJbueVM8") or None
 DISCORD_CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID") or "123456789012345678")
 TWITCH_CLIENT_ID = os.environ.get("TWITCH_CLIENT_ID") or "YOUR_TWITCH_CLIENT_ID"
 TWITCH_CLIENT_SECRET = os.environ.get("TWITCH_CLIENT_SECRET") or "YOUR_TWITCH_CLIENT_SECRET"
